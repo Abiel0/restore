@@ -117,66 +117,70 @@
 
     <script>
         const fileInput = document.getElementById('photo-input');
-        const statusDiv = document.getElementById('status');
-        const originalImage = document.getElementById('original-image');
-        const resultImage = document.getElementById('result-image');
-        const downloadBtn = document.getElementById('download-btn');
+const statusDiv = document.getElementById('status');
+const originalImage = document.getElementById('original-image');
+const resultImage = document.getElementById('result-image');
+const downloadBtn = document.getElementById('download-btn');
 
-        fileInput.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    originalImage.src = e.target.result;
-                    originalImage.style.display = 'block';
-                }
-                reader.readAsDataURL(file);
-            }
+fileInput.addEventListener('change', function() {
+    const file = this.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            originalImage.src = e.target.result;
+            originalImage.style.display = 'block';
+        }
+        reader.readAsDataURL(file);
+    }
+});
+
+async function restorePhoto() {
+    if (!fileInput.files.length) {
+        statusDiv.textContent = 'Please select a file.';
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    statusDiv.textContent = 'Restoring photo...';
+    resultImage.style.display = 'none';
+    downloadBtn.style.display = 'none';
+
+    try {
+        const response = await fetch('/restore', {
+            method: 'POST',
+            body: formData
         });
 
-        async function restorePhoto() {
-            if (!fileInput.files.length) {
-                statusDiv.textContent = 'Please select a file.';
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-
-            statusDiv.textContent = 'Restoring photo...';
-            resultImage.style.display = 'none';
-            downloadBtn.style.display = 'none';
-
-            try {
-                const response = await fetch('/restore', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (!data.success) {
-                    throw new Error(data.error || 'Unknown error occurred');
-                }
-
-                statusDiv.textContent = 'Photo restored successfully!';
-                resultImage.src = 'data:image/png;base64,' + data.image;
-                resultImage.style.display = 'block';
-                downloadBtn.style.display = 'inline-block';
-            } catch (error) {
-                console.error('Error:', error);
-                statusDiv.textContent = `An error occurred while restoring the photo: ${error.message}`;
-            }
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        function downloadImage() {
-            const link = document.createElement('a');
-            link.href = resultImage.src;
-            link.download = 'restored_image.png';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'Unknown error occurred');
         }
+
+        statusDiv.textContent = 'Photo restored successfully!';
+        resultImage.src = 'data:image/png;base64,' + data.image;
+        resultImage.style.display = 'block';
+        downloadBtn.style.display = 'inline-block';
+    } catch (error) {
+        console.error('Error:', error);
+        statusDiv.textContent = `An error occurred while restoring the photo: ${error.message}. Please try again later or contact support if the issue persists.`;
+    }
+}
+
+function downloadImage() {
+    const link = document.createElement('a');
+    link.href = resultImage.src;
+    link.download = 'restored_image.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
     </script>
 </body>
 </html>
