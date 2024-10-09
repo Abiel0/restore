@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from gradio_client import Client, handle_file
+from gradio_client.exceptions import AppError
 import os
 import tempfile
 import logging
@@ -70,6 +71,10 @@ def restore_photo():
             else:
                 logger.error("Failed to retrieve the restored image")
                 return jsonify({'success': False, 'error': 'Failed to retrieve the restored image'}), 500
+        
+        except AppError as e:
+            logger.error(f"Gradio AppError: {str(e)}")
+            return jsonify({'success': False, 'error': 'The photo restoration service is currently unavailable. Please try again later or contact support.'}), 503
        
         except Exception as e:
             logger.error(f"Error during photo restoration: {str(e)}")
@@ -83,6 +88,11 @@ def restore_photo():
             if restored_image_path and os.path.exists(restored_image_path):
                 os.remove(restored_image_path)
                 logger.info(f"Deleted restored image file: {restored_image_path}")
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    logger.error(f"Internal Server Error: {error}")
+    return jsonify({'success': False, 'error': 'An unexpected error occurred. Please try again later.'}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
