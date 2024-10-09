@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from gradio_client import Client
+from gradio_client import Client, handle_file
 import os
 import tempfile
 import logging
@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = app.logger
 
 try:
-    client = Client("ohayonguy/PMRF", verbose=True)
+    client = Client("ohayonguy/PMRF")
 except Exception as e:
     logger.error(f"Failed to initialize Gradio client: {str(e)}")
     raise
@@ -38,27 +38,23 @@ def restore_photo():
     
     if file:
         try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_input:
+            with tempfile.NamedTemporaryFile(delete=False) as temp_input:
                 file.save(temp_input.name)
                 logger.info(f"Saved uploaded file to temporary location: {temp_input.name}")
             
             logger.info("Starting photo restoration process")
-            try:
-                result = client.predict(
-                    temp_input.name,
-                    True,  # randomize_seed
-                    False,  # aligned
-                    1,  # scale
-                    25,  # num_flow_steps
-                    42,  # seed
-                    api_name="/predict"
-                )
-                logger.info("Photo restoration process completed")
-            except Exception as gradio_error:
-                logger.error(f"Gradio client error: {str(gradio_error)}", exc_info=True)
-                return jsonify({'success': False, 'error': f'Gradio client error: {str(gradio_error)}'}), 500
+            result = client.predict(
+                handle_file(temp_input.name),
+                True,  # randomize_seed
+                False,  # aligned
+                1,  # scale
+                25,  # num_flow_steps
+                42,  # seed
+                api_name="/predict"
+            )
+            logger.info("Photo restoration process completed")
 
-            restored_image_path = result[0]
+            restored_image_path, _ = result
 
             if restored_image_path and os.path.exists(restored_image_path):
                 logger.info(f"Reading restored image: {restored_image_path}")
@@ -82,4 +78,4 @@ def restore_photo():
                 logger.info(f"Deleted restored image file: {restored_image_path}")
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
