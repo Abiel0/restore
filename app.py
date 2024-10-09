@@ -1,13 +1,14 @@
-import os
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from gradio_client import Client, handle_file
+import os
 import tempfile
 import logging
 import base64
 
 app = Flask(__name__)
 CORS(app)
+
 logging.basicConfig(level=logging.DEBUG)
 logger = app.logger
 
@@ -21,7 +22,6 @@ except Exception as e:
 def index():
     return send_from_directory('.', 'index.html')
 
-@app.route('/restore', methods=['POST'])
 @app.route('/restore', methods=['POST'])
 def restore_photo():
     logger.info("Received photo restoration request")
@@ -78,5 +78,4 @@ def restore_photo():
                 logger.info(f"Deleted restored image file: {restored_image_path}")
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
