@@ -43,16 +43,20 @@ def restore_photo():
                 logger.info(f"Saved uploaded file to temporary location: {temp_input.name}")
             
             logger.info("Starting photo restoration process")
-            result = client.predict(
-                temp_input.name,
-                True,  # randomize_seed
-                False,  # aligned
-                1,  # scale
-                25,  # num_flow_steps
-                42,  # seed
-                api_name="/predict"
-            )
-            logger.info("Photo restoration process completed")
+            try:
+                result = client.predict(
+                    temp_input.name,
+                    True,  # randomize_seed
+                    False,  # aligned
+                    1,  # scale
+                    25,  # num_flow_steps
+                    42,  # seed
+                    api_name="/predict"
+                )
+                logger.info("Photo restoration process completed")
+            except Exception as gradio_error:
+                logger.error(f"Gradio client error: {str(gradio_error)}", exc_info=True)
+                return jsonify({'success': False, 'error': f'Gradio client error: {str(gradio_error)}'}), 500
 
             restored_image_path = result[0]
 
