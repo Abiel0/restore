@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = app.logger
 
 try:
-    client = Client("ohayonguy/PMRF", show_error=True)
+    client = Client("ohayonguy/PMRF")
 except Exception as e:
     logger.error(f"Failed to initialize Gradio client: {str(e)}")
     raise
