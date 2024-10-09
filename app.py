@@ -17,20 +17,19 @@ logger = app.logger
 
 # Initialize Gradio client
 try:
-    client = Client("ohayonguy/PMRF")
+    client = Client("finegrain/finegrain-image-enhancer")
     logger.info("Gradio client initialized successfully")
 except Exception as e:
     logger.error(f"Failed to initialize Gradio client: {str(e)}")
     logger.error(traceback.format_exc())
-    # Don't raise the exception, let the application continue
 
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
 
-@app.route('/restore', methods=['POST'])
-def restore_photo():
-    logger.info("Received photo restoration request")
+@app.route('/enhance', methods=['POST'])
+def enhance_photo():
+    logger.info("Received photo enhancement request")
    
     if 'file' not in request.files:
         logger.warning("No file part in the request")
@@ -44,40 +43,48 @@ def restore_photo():
    
     if file:
         temp_input = None
-        restored_image_path = None
+        enhanced_image_path = None
         try:
-            with tempfile.NamedTemporaryFile(delete=False) as temp:
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp:
                 temp_input = temp.name
                 file.save(temp_input)
                 logger.info(f"Saved uploaded file to temporary location: {temp_input}")
            
-            logger.info("Starting photo restoration process")
+            logger.info("Starting photo enhancement process")
             result = client.predict(
-                handle_file(temp_input),
-                True,  # randomize_seed
-                False,  # aligned
-                1,  # scale
-                25,  # num_flow_steps
-                42,  # seed
-                api_name="/predict"
+                input_image=handle_file(temp_input),
+                prompt="Enhance image quality",
+                negative_prompt="Low quality, blurry",
+                seed=42,
+                upscale_factor=2,
+                controlnet_scale=0.6,
+                controlnet_decay=1,
+                condition_scale=6,
+                tile_width=112,
+                tile_height=144,
+                denoise_strength=0.35,
+                num_inference_steps=18,
+                solver="DDIM",
+                api_name="/process"
             )
-            logger.info("Photo restoration process completed")
-            restored_image_path, _ = result
-            if restored_image_path and os.path.exists(restored_image_path):
-                logger.info(f"Reading restored image: {restored_image_path}")
-                with open(restored_image_path, "rb") as image_file:
+            logger.info("Photo enhancement process completed")
+            
+            enhanced_image_path = result[0]  # Assuming the first item in the result is the path to the enhanced image
+            if enhanced_image_path and os.path.exists(enhanced_image_path):
+                logger.info(f"Reading enhanced image: {enhanced_image_path}")
+                with open(enhanced_image_path, "rb") as image_file:
                     encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
                 return jsonify({'success': True, 'image': encoded_string})
             else:
-                logger.error("Failed to retrieve the restored image")
-                return jsonify({'success': False, 'error': 'Failed to retrieve the restored image'}), 500
+                logger.error("Failed to retrieve the enhanced image")
+                return jsonify({'success': False, 'error': 'Failed to retrieve the enhanced image'}), 500
         
         except AppError as e:
             logger.error(f"Gradio AppError: {str(e)}")
-            return jsonify({'success': False, 'error': 'The photo restoration service is currently unavailable. Please try again later or contact support.'}), 503
+            return jsonify({'success': False, 'error': 'The photo enhancement service is currently unavailable. Please try again later or contact support.'}), 503
        
         except Exception as e:
-            logger.error(f"Error during photo restoration: {str(e)}")
+            logger.error(f"Error during photo enhancement: {str(e)}")
             logger.error(traceback.format_exc())
             return jsonify({'success': False, 'error': 'An internal server error occurred. Please try again later.'}), 500
        
@@ -85,9 +92,9 @@ def restore_photo():
             if temp_input and os.path.exists(temp_input):
                 os.unlink(temp_input)
                 logger.info(f"Deleted temporary input file: {temp_input}")
-            if restored_image_path and os.path.exists(restored_image_path):
-                os.remove(restored_image_path)
-                logger.info(f"Deleted restored image file: {restored_image_path}")
+            if enhanced_image_path and os.path.exists(enhanced_image_path):
+                os.remove(enhanced_image_path)
+                logger.info(f"Deleted enhanced image file: {enhanced_image_path}")
 
 @app.errorhandler(500)
 def internal_server_error(error):
