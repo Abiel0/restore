@@ -51,21 +51,22 @@ def enhance_photo():
                 logger.info(f"Saved uploaded file to temporary location: {temp_input}")
            
             logger.info("Starting photo enhancement process")
-            result = client.predict(
-                input_image=handle_file(temp_input),
-                prompt="Enhance image quality",
-                negative_prompt="Low quality, blurry",
-                seed=42,
-                upscale_factor=2,
-                controlnet_scale=0.6,
-                controlnet_decay=1,
-                condition_scale=6,
-                tile_width=112,
-                tile_height=144,
-                denoise_strength=0.35,
-                num_inference_steps=18,
-                solver="DDIM",
-                api_name="/process"
+           
+        result = client.predict(
+    		input_image=handle_file('temp_input'),
+    		prompt="Hello!!",
+    		negative_prompt="Hello!!",
+    		seed=42,
+    		upscale_factor=2,
+    		controlnet_scale=0.6,
+    		controlnet_decay=1,
+    		condition_scale=6,
+    		tile_width=112,
+    		tile_height=144,
+    		denoise_strength=0.35,
+    		num_inference_steps=18,
+    		solver="DDIM",
+    		api_name="/process"
             )
             logger.info("Photo enhancement process completed")
             
